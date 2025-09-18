@@ -1,0 +1,179 @@
+/**************************************
+ * YT Timestamp Comments — content.css
+ * - 패널/리스트/아이템 기본 스타일
+ * - 타임칩은 카드의 좌측 영역(안정 레이아웃)
+ **************************************/
+
+/* ===== 패널 전체 ===== */
+#yt-tc-panel {
+  position: fixed;
+  top: 56px;
+  /* 유튜브 상단 바 아래 */
+  right: 8px;
+  width: 320px;
+  height: calc(100vh - 64px);
+  background: rgba(20, 20, 23, 0.92);
+  color: #eee;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  z-index: 999999;
+  font-family: Arial, sans-serif;
+  display: flex;
+  /* 실제 기본 닫힘은 JS에서 display:none 설정 */
+  flex-direction: column;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* ===== 헤더 ===== */
+#yt-tc-panel .ytc-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  user-select: none;
+}
+
+#yt-tc-panel .ytc-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-right: auto;
+}
+
+#yt-tc-panel .ytc-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #eee;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+#yt-tc-panel .ytc-btn:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ===== 리스트 ===== */
+#yt-tc-panel .ytc-list {
+  overflow: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 스크롤바(옵션) */
+#yt-tc-panel .ytc-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+#yt-tc-panel .ytc-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+}
+
+#yt-tc-panel .ytc-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ===== 아이템 카드 ===== */
+/* 안정 레이아웃: 왼쪽 64px 컬럼에 타임칩, 오른쪽에 본문 */
+#yt-tc-panel .ytc-item {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+#yt-tc-panel .ytc-item:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* 현재 재생 시점 근접 항목 하이라이트 */
+#yt-tc-panel .ytc-item.active {
+  outline: 2px solid #4da3ff;
+  background: rgba(77, 163, 255, 0.10);
+}
+
+/* ===== 타임칩 ===== */
+#yt-tc-panel .ytc-time {
+  display: inline-block;
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #eee;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* ===== 본문 텍스트 ===== */
+#yt-tc-panel .ytc-text {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #ddd;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* ===== 패널 토글용 FAB ===== */
+#yt-tc-fab {
+  position: fixed;
+  right: 10px;
+  top: 10px;
+  z-index: 999999;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background: rgba(20, 20, 23, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: grid;
+  place-items: center;
+  color: #eee;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  font-size: 16px;
+}
+
+#yt-tc-fab:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* 여러 타임칩을 한 줄에 배치 (보조 섹션 카드 내부) */
+#yt-tc-panel .ytc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* 개별 칩 */
+#yt-tc-panel .ytc-chip {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.12);
+  color: #eee;
+  font-weight: bold;
+  font-feature-settings: "tnum";
+  font-size: 11.5px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 재생 시점 근접 칩 하이라이트 */
+#yt-tc-panel .ytc-chip.active {
+  outline: 2px solid #4da3ff;
+  background: rgba(77,163,255,0.20);
+}
