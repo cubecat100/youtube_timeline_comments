@@ -611,441 +611,441 @@ function parseLeadingSegments(fullText) {
 //   return segs;
 // }
 
-/* -------------------------------
-   댓글 DOM 접근
--------------------------------- */
-function getAllCommentNodes() {
-  const vm = Array.from(document.querySelectorAll("ytd-comment-view-model"));
-  const old = Array.from(document.querySelectorAll("ytd-comment-thread-renderer ytd-comment-renderer"));
-  return vm.length > 0 ? vm : old;
-}
+// /* -------------------------------
+//    댓글 DOM 접근
+// -------------------------------- */
+// function getAllCommentNodes() {
+//   const vm = Array.from(document.querySelectorAll("ytd-comment-view-model"));
+//   const old = Array.from(document.querySelectorAll("ytd-comment-thread-renderer ytd-comment-renderer"));
+//   return vm.length > 0 ? vm : old;
+// }
 
-function getCommentTextFromNode(node) {
-  const a = node.querySelector?.(".yt-core-attributed-string");
-  if (a?.innerText) return a.innerText.trim();
-  const b = node.querySelector?.("yt-formatted-string#content-text");
-  if (b?.innerText) return b.innerText.trim();
-  return "";
-}
+// function getCommentTextFromNode(node) {
+//   const a = node.querySelector?.(".yt-core-attributed-string");
+//   if (a?.innerText) return a.innerText.trim();
+//   const b = node.querySelector?.("yt-formatted-string#content-text");
+//   if (b?.innerText) return b.innerText.trim();
+//   return "";
+// }
 
-/* -------------------------------
-   상태 저장
--------------------------------- */
-const nodeUidMap = new WeakMap(); let nextUid = 1;
-function getNodeUid(n) { let id = nodeUidMap.get(n); if (!id) { id = nextUid++; nodeUidMap.set(n, id); } return id; }
+// /* -------------------------------
+//    상태 저장
+// -------------------------------- */
+// const nodeUidMap = new WeakMap(); let nextUid = 1;
+// function getNodeUid(n) { let id = nodeUidMap.get(n); if (!id) { id = nextUid++; nodeUidMap.set(n, id); } return id; }
 
-function textHash(s) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; } return h.toString(16); }
+// function textHash(s) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; } return h.toString(16); }
 
-// 메인(선행 TS) 평탄 리스트
-const leadingItems = [];   // { seconds, display, text, uid }
-// 보조(비선행) 댓글 단위 묶음: uid -> { text, chips: Map(sec -> {display, text}) }
-const nonLeadingStore = new Map();
+// // 메인(선행 TS) 평탄 리스트
+// const leadingItems = [];   // { seconds, display, text, uid }
+// // 보조(비선행) 댓글 단위 묶음: uid -> { text, chips: Map(sec -> {display, text}) }
+// const nonLeadingStore = new Map();
 
-// 중복 방지
-const seen = new Set();    // key: `${uid}::L/N::${seconds}::${hash(text)}`
+// // 중복 방지
+// const seen = new Set();    // key: `${uid}::L/N::${seconds}::${hash(text)}`
 
-/* -------------------------------
-   스캐닝
--------------------------------- */
-function handleCommentNode(node) {
-  const text = getCommentTextFromNode(node);
-  if (!text) return 0;
+// /* -------------------------------
+//    스캐닝
+// -------------------------------- */
+// function handleCommentNode(node) {
+//   const text = getCommentTextFromNode(node);
+//   if (!text) return 0;
 
-  const uid = getNodeUid(node);
-  let added = 0;
+//   const uid = getNodeUid(node);
+//   let added = 0;
 
-  if (TS_HEAD.test(text)) {
-    // 메인(선행) 섹션
-    const segs = parseLeadingSegments(text);
-    for (const seg of segs) {
-      const key = `${uid}::L::${seg.seconds}::${textHash(seg.text)}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      leadingItems.push({ seconds: seg.seconds, display: seg.display, text: seg.text, uid });
-      added++;
-    }
-  } else {
-    // 보조(비선행) 섹션: 댓글 단위로 칩 묶음
-    const segs = parseAllSegments(text);
-    if (segs.length === 0) return 0;
-    let entry = nonLeadingStore.get(uid);
-    if (!entry) { entry = { text, chips: new Map() }; nonLeadingStore.set(uid, entry); }
-    for (const seg of segs) {
-      const key = `${uid}::N::${seg.seconds}::${textHash(seg.text)}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      // 같은 초 중복 방지, 마지막 텍스트 보존
-      entry.chips.set(seg.seconds, { display: seg.display, text: seg.text });
-      added++;
-    }
-  }
+//   if (TS_HEAD.test(text)) {
+//     // 메인(선행) 섹션
+//     const segs = parseLeadingSegments(text);
+//     for (const seg of segs) {
+//       const key = `${uid}::L::${seg.seconds}::${textHash(seg.text)}`;
+//       if (seen.has(key)) continue;
+//       seen.add(key);
+//       leadingItems.push({ seconds: seg.seconds, display: seg.display, text: seg.text, uid });
+//       added++;
+//     }
+//   } else {
+//     // 보조(비선행) 섹션: 댓글 단위로 칩 묶음
+//     const segs = parseAllSegments(text);
+//     if (segs.length === 0) return 0;
+//     let entry = nonLeadingStore.get(uid);
+//     if (!entry) { entry = { text, chips: new Map() }; nonLeadingStore.set(uid, entry); }
+//     for (const seg of segs) {
+//       const key = `${uid}::N::${seg.seconds}::${textHash(seg.text)}`;
+//       if (seen.has(key)) continue;
+//       seen.add(key);
+//       // 같은 초 중복 방지, 마지막 텍스트 보존
+//       entry.chips.set(seg.seconds, { display: seg.display, text: seg.text });
+//       added++;
+//     }
+//   }
 
-  return added;
-}
+//   return added;
+// }
 
-function scanOnce(withLog = true) {
-  const nodes = getAllCommentNodes();
-  let total = 0;
-  for (const n of nodes) total += handleCommentNode(n);
-  if (withLog) log(`스캔: nodes=${nodes.length}, 선행추가=${total}, 메인=${leadingItems.length}, 보조댓글=${nonLeadingStore.size}`);
-  return total;
-}
+// function scanOnce(withLog = true) {
+//   const nodes = getAllCommentNodes();
+//   let total = 0;
+//   for (const n of nodes) total += handleCommentNode(n);
+//   if (withLog) log(`스캔: nodes=${nodes.length}, 선행추가=${total}, 메인=${leadingItems.length}, 보조댓글=${nonLeadingStore.size}`);
+//   return total;
+// }
 
-// 스캔 결과(leadingItems, nonLeadingStore) → 오버레이용 [{time, text}]로 변환
-function buildOverlayTimeline(leadingItems, nonLeadingStore) {
-  const out = [];
+// // 스캔 결과(leadingItems, nonLeadingStore) → 오버레이용 [{time, text}]로 변환
+// function buildOverlayTimeline(leadingItems, nonLeadingStore) {
+//   const out = [];
 
-  // 1) 선행 타임스탬프(댓글 앞부분에 있는 시간)
-  (leadingItems || []).forEach(it => {
-    const sec =
-      it.seconds ?? it.timeSec ??
-      (typeof parseTimestamp === 'function' ? parseTimestamp(it.time ?? it.ts ?? it.timestamp) : Number(it.time ?? it.ts ?? it.timestamp));
-    const txt = it.text ?? it.content ?? it.body ?? it.comment ?? it.msg ?? '';
-    if (Number.isFinite(sec)) out.push({ time: sec, text: String(txt) });
-  });
+//   // 1) 선행 타임스탬프(댓글 앞부분에 있는 시간)
+//   (leadingItems || []).forEach(it => {
+//     const sec =
+//       it.seconds ?? it.timeSec ??
+//       (typeof parseTimestamp === 'function' ? parseTimestamp(it.time ?? it.ts ?? it.timestamp) : Number(it.time ?? it.ts ?? it.timestamp));
+//     const txt = it.text ?? it.content ?? it.body ?? it.comment ?? it.msg ?? '';
+//     if (Number.isFinite(sec)) out.push({ time: sec, text: String(txt) });
+//   });
 
-  // 2) 비선행 타임스탬프(칩/본문 중간 등)
-  if (nonLeadingStore) {
-    const entries = nonLeadingStore instanceof Map
-      ? Array.from(nonLeadingStore.values())
-      : Array.isArray(nonLeadingStore)
-        ? nonLeadingStore
-        : Object.values(nonLeadingStore);
+//   // 2) 비선행 타임스탬프(칩/본문 중간 등)
+//   if (nonLeadingStore) {
+//     const entries = nonLeadingStore instanceof Map
+//       ? Array.from(nonLeadingStore.values())
+//       : Array.isArray(nonLeadingStore)
+//         ? nonLeadingStore
+//         : Object.values(nonLeadingStore);
 
-    entries.forEach(e => {
-      const chips = e.chips ?? e.times ?? e.timestamps ?? e.timeChips;
-      const baseText = e.text ?? e.content ?? e.body ?? e.comment ?? e.msg ?? '';
+//     entries.forEach(e => {
+//       const chips = e.chips ?? e.times ?? e.timestamps ?? e.timeChips;
+//       const baseText = e.text ?? e.content ?? e.body ?? e.comment ?? e.msg ?? '';
 
-      if (chips instanceof Map) {
-        chips.forEach((info, k) => {
-          const sec = Number(k) ?? (typeof parseTimestamp === 'function' ? parseTimestamp(k) : Number(k));
-          const txt = (info && (info.text ?? info.label)) ?? baseText;
-          if (Number.isFinite(sec)) out.push({ time: sec, text: String(txt || '') });
-        });
-      } else if (Array.isArray(chips)) {
-        chips.forEach(c => {
-          const sec =
-            c.seconds ?? c.timeSec ??
-            (typeof parseTimestamp === 'function' ? parseTimestamp(c.time ?? c.ts ?? c.timestamp) : Number(c.time ?? c.ts ?? c.timestamp));
-          const txt = c.text ?? c.label ?? baseText;
-          if (Number.isFinite(sec)) out.push({ time: sec, text: String(txt || '') });
-        });
-      } else if (chips && typeof chips === 'object') {
-        Object.entries(chips).forEach(([k, v]) => {
-          const sec = Number(k) ?? (typeof parseTimestamp === 'function' ? parseTimestamp(k) : Number(k));
-          const txt = (v && (v.text ?? v.label)) ?? baseText;
-          if (Number.isFinite(sec)) out.push({ time: sec, text: String(txt || '') });
-        });
-      }
-    });
-  }
+//       if (chips instanceof Map) {
+//         chips.forEach((info, k) => {
+//           const sec = Number(k) ?? (typeof parseTimestamp === 'function' ? parseTimestamp(k) : Number(k));
+//           const txt = (info && (info.text ?? info.label)) ?? baseText;
+//           if (Number.isFinite(sec)) out.push({ time: sec, text: String(txt || '') });
+//         });
+//       } else if (Array.isArray(chips)) {
+//         chips.forEach(c => {
+//           const sec =
+//             c.seconds ?? c.timeSec ??
+//             (typeof parseTimestamp === 'function' ? parseTimestamp(c.time ?? c.ts ?? c.timestamp) : Number(c.time ?? c.ts ?? c.timestamp));
+//           const txt = c.text ?? c.label ?? baseText;
+//           if (Number.isFinite(sec)) out.push({ time: sec, text: String(txt || '') });
+//         });
+//       } else if (chips && typeof chips === 'object') {
+//         Object.entries(chips).forEach(([k, v]) => {
+//           const sec = Number(k) ?? (typeof parseTimestamp === 'function' ? parseTimestamp(k) : Number(k));
+//           const txt = (v && (v.text ?? v.label)) ?? baseText;
+//           if (Number.isFinite(sec)) out.push({ time: sec, text: String(txt || '') });
+//         });
+//       }
+//     });
+//   }
 
-  // 정렬 + 중복 정리(같은 시점 같은 텍스트 중복 제거)
-  out.sort((a, b) => (a.time - b.time) || a.text.localeCompare(b.text));
-  const dedup = [];
-  let prev = null;
-  for (const x of out) {
-    if (!prev || prev.time !== x.time || prev.text !== x.text) dedup.push(x);
-    prev = x;
-  }
-  return dedup;
-}
+//   // 정렬 + 중복 정리(같은 시점 같은 텍스트 중복 제거)
+//   out.sort((a, b) => (a.time - b.time) || a.text.localeCompare(b.text));
+//   const dedup = [];
+//   let prev = null;
+//   for (const x of out) {
+//     if (!prev || prev.time !== x.time || prev.text !== x.text) dedup.push(x);
+//     prev = x;
+//   }
+//   return dedup;
+// }
 
-// 오버레이에 실제 반영 (주입형 API가 있으면 그걸 쓰고, 없으면 직접 교체)
-function pushScanToOverlay(leadingItems, nonLeadingStore) {
-  const timeline = buildOverlayTimeline(leadingItems, nonLeadingStore);
-  if (!timeline.length) {
-    console.log('[TL] scan produced 0 items (skip)');
-    return;
-  }
+// // 오버레이에 실제 반영 (주입형 API가 있으면 그걸 쓰고, 없으면 직접 교체)
+// function pushScanToOverlay(leadingItems, nonLeadingStore) {
+//   const timeline = buildOverlayTimeline(leadingItems, nonLeadingStore);
+//   if (!timeline.length) {
+//     console.log('[TL] scan produced 0 items (skip)');
+//     return;
+//   }
 
-  if (typeof window.__timeline_update === 'function') {
-    // 주입형 경로 사용
-    window.__timeline_update(timeline);
-  } else if (window.__timelinePlayer && typeof normalizeComments === 'function') {
-    // 주입형 API가 없으면 직접 현재 플레이어에 반영
-    const p = window.__timelinePlayer;
-    p.comments = normalizeComments(timeline);
-    p.idx = p._lowerBound(p.comments, p.video.currentTime - p.tolerance, c => c.timeSec);
-  } else {
-    // 최후의 수단: 전역 캐시만 갱신 (초기 부팅 시 폴백으로 쓰이게)
-    window.__TIMELINE_RAW = timeline;
-  }
-  console.log('[TL] overlay updated from scan:', timeline.length);
-}
+//   if (typeof window.__timeline_update === 'function') {
+//     // 주입형 경로 사용
+//     window.__timeline_update(timeline);
+//   } else if (window.__timelinePlayer && typeof normalizeComments === 'function') {
+//     // 주입형 API가 없으면 직접 현재 플레이어에 반영
+//     const p = window.__timelinePlayer;
+//     p.comments = normalizeComments(timeline);
+//     p.idx = p._lowerBound(p.comments, p.video.currentTime - p.tolerance, c => c.timeSec);
+//   } else {
+//     // 최후의 수단: 전역 캐시만 갱신 (초기 부팅 시 폴백으로 쓰이게)
+//     window.__TIMELINE_RAW = timeline;
+//   }
+//   console.log('[TL] overlay updated from scan:', timeline.length);
+// }
 
-/* -------------------------------
-   UI (패널/렌더)
--------------------------------- */
-function ensureFab() {
-  if (byId("yt-tc-fab")) return;
-  const fab = document.createElement("div");
-  fab.id = "yt-tc-fab";
-  fab.title = "댓글 타임스탬프 패널 열기/닫기";
-  fab.textContent = "⏱";
-  fab.addEventListener("click", () => {
-    const p = byId("yt-tc-panel");
-    if (p) p.style.display = p.style.display === "none" ? "flex" : "none";
-  });
-  document.documentElement.appendChild(fab);
-}
-function ensurePanel() {
-  if (byId("yt-tc-panel")) return;
-  const root = document.createElement("div");
-  root.id = "yt-tc-panel";
-  root.innerHTML = `
-    <div class="ytc-header">
-      <div class="ytc-title">타임스탬프 타임라인</div>
-      <button class="ytc-btn" id="ytc-rescan">재스캔</button>
-      <button class="ytc-btn" id="ytc-close">닫기</button>
-    </div>
-    <div class="ytc-list" id="ytc-list"></div>
-  `;
-  document.documentElement.appendChild(root);
-  // 기본 닫힘
-  root.style.display = "none";
+// /* -------------------------------
+//    UI (패널/렌더)
+// -------------------------------- */
+// function ensureFab() {
+//   if (byId("yt-tc-fab")) return;
+//   const fab = document.createElement("div");
+//   fab.id = "yt-tc-fab";
+//   fab.title = "댓글 타임스탬프 패널 열기/닫기";
+//   fab.textContent = "⏱";
+//   fab.addEventListener("click", () => {
+//     const p = byId("yt-tc-panel");
+//     if (p) p.style.display = p.style.display === "none" ? "flex" : "none";
+//   });
+//   document.documentElement.appendChild(fab);
+// }
+// function ensurePanel() {
+//   if (byId("yt-tc-panel")) return;
+//   const root = document.createElement("div");
+//   root.id = "yt-tc-panel";
+//   root.innerHTML = `
+//     <div class="ytc-header">
+//       <div class="ytc-title">타임스탬프 타임라인</div>
+//       <button class="ytc-btn" id="ytc-rescan">재스캔</button>
+//       <button class="ytc-btn" id="ytc-close">닫기</button>
+//     </div>
+//     <div class="ytc-list" id="ytc-list"></div>
+//   `;
+//   document.documentElement.appendChild(root);
+//   // 기본 닫힘
+//   root.style.display = "none";
 
-  byId("ytc-close").addEventListener("click", () => { root.style.display = "none"; });
-  byId("ytc-rescan").addEventListener("click", () => { rescanAndRender(); });
-}
+//   byId("ytc-close").addEventListener("click", () => { root.style.display = "none"; });
+//   byId("ytc-rescan").addEventListener("click", () => { rescanAndRender(); });
+// }
 
-function renderList() {
-  const list = byId("ytc-list");
-  if (!list) return;
+// function renderList() {
+//   const list = byId("ytc-list");
+//   if (!list) return;
 
-  // 메인(선행) 정렬
-  const main = [...leadingItems].sort((a, b) => a.seconds - b.seconds);
-  // 보조(비선행) 정렬: 각 댓글의 최소 초 기준
-  const aux = Array.from(nonLeadingStore.entries()).map(([uid, entry]) => {
-    const chips = Array.from(entry.chips.entries()) // [sec, {display,text}]
-      .sort((a, b) => a[0] - b[0]);
-    const firstSec = chips.length ? chips[0][0] : Number.MAX_SAFE_INTEGER;
-    return { uid, text: entry.text, chips, firstSec };
-  }).sort((a, b) => a.firstSec - b.firstSec);
+//   // 메인(선행) 정렬
+//   const main = [...leadingItems].sort((a, b) => a.seconds - b.seconds);
+//   // 보조(비선행) 정렬: 각 댓글의 최소 초 기준
+//   const aux = Array.from(nonLeadingStore.entries()).map(([uid, entry]) => {
+//     const chips = Array.from(entry.chips.entries()) // [sec, {display,text}]
+//       .sort((a, b) => a[0] - b[0]);
+//     const firstSec = chips.length ? chips[0][0] : Number.MAX_SAFE_INTEGER;
+//     return { uid, text: entry.text, chips, firstSec };
+//   }).sort((a, b) => a.firstSec - b.firstSec);
 
-  const sectionMain = `
-    <div style="display:flex;gap:8px;align-items:center;margin:6px 0 4px;">
-      <div style="font-weight:700;">메인(선행 타임스탬프)</div>
-      <div style="opacity:.7;">(${main.length})</div>
-    </div>
-    <div id="ytc-timeline-list">
-      ${main.map(it => `
-        <div class="ytc-item" data-time="${it.seconds}">
-          <div class="ytc-time">${it.display}</div>
-          <div class="ytc-text">${escapeHtml(it.text)}</div>
-        </div>`).join("")}
-    </div>
-  `;
+//   const sectionMain = `
+//     <div style="display:flex;gap:8px;align-items:center;margin:6px 0 4px;">
+//       <div style="font-weight:700;">메인(선행 타임스탬프)</div>
+//       <div style="opacity:.7;">(${main.length})</div>
+//     </div>
+//     <div id="ytc-timeline-list">
+//       ${main.map(it => `
+//         <div class="ytc-item" data-time="${it.seconds}">
+//           <div class="ytc-time">${it.display}</div>
+//           <div class="ytc-text">${escapeHtml(it.text)}</div>
+//         </div>`).join("")}
+//     </div>
+//   `;
 
-  const sectionAux = `
-    <div style="display:flex;gap:8px;align-items:center;margin:10px 0 4px;">
-      <div style="font-weight:700;">보조(비선행 타임스탬프 · 댓글 묶음)</div>
-      <div style="opacity:.7;">(${aux.length})</div>
-    </div>
-    <div id="ytc-aux-list">
-      ${aux.map(g => `
-        <div class="ytc-item" data-uid="${g.uid}">
-          <div class="ytc-time" style="opacity:.5;">⋯</div>
-          <div>
-            <div class="ytc-text">${escapeHtml(g.text)}</div>
-            <div class="ytc-chips">
-              ${g.chips.map(([sec, info]) => `
-                <span class="ytc-chip" data-time="${sec}" title="${escapeHtml(info.text)}">${info.display}</span>
-              `).join("")}
-            </div>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  `;
+//   const sectionAux = `
+//     <div style="display:flex;gap:8px;align-items:center;margin:10px 0 4px;">
+//       <div style="font-weight:700;">보조(비선행 타임스탬프 · 댓글 묶음)</div>
+//       <div style="opacity:.7;">(${aux.length})</div>
+//     </div>
+//     <div id="ytc-aux-list">
+//       ${aux.map(g => `
+//         <div class="ytc-item" data-uid="${g.uid}">
+//           <div class="ytc-time" style="opacity:.5;">⋯</div>
+//           <div>
+//             <div class="ytc-text">${escapeHtml(g.text)}</div>
+//             <div class="ytc-chips">
+//               ${g.chips.map(([sec, info]) => `
+//                 <span class="ytc-chip" data-time="${sec}" title="${escapeHtml(info.text)}">${info.display}</span>
+//               `).join("")}
+//             </div>
+//           </div>
+//         </div>
+//       `).join("")}
+//     </div>
+//   `;
 
-  list.innerHTML = sectionMain + sectionAux;
+//   list.innerHTML = sectionMain + sectionAux;
 
-  // 메인 항목 클릭 → 시킹
-  list.querySelectorAll("#ytc-timeline-list .ytc-item").forEach(el => {
-    el.addEventListener("click", () => seekTo(Number(el.dataset.time)));
-  });
-  // 보조 칩 클릭 → 시킹 (카드 클릭은 첫 칩으로 이동)
-  list.querySelectorAll("#ytc-aux-list .ytc-item").forEach(card => {
-    const chips = card.querySelectorAll(".ytc-chip");
-    card.addEventListener("click", (ev) => {
-      if (ev.target.closest(".ytc-chip")) return; // 칩 자체 클릭이면 카드 핸들러 무시
-      const firstChip = chips[0];
-      if (firstChip) seekTo(Number(firstChip.dataset.time));
-    });
-    chips.forEach(chip => {
-      chip.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        seekTo(Number(chip.dataset.time));
-      });
-    });
-  });
+//   // 메인 항목 클릭 → 시킹
+//   list.querySelectorAll("#ytc-timeline-list .ytc-item").forEach(el => {
+//     el.addEventListener("click", () => seekTo(Number(el.dataset.time)));
+//   });
+//   // 보조 칩 클릭 → 시킹 (카드 클릭은 첫 칩으로 이동)
+//   list.querySelectorAll("#ytc-aux-list .ytc-item").forEach(card => {
+//     const chips = card.querySelectorAll(".ytc-chip");
+//     card.addEventListener("click", (ev) => {
+//       if (ev.target.closest(".ytc-chip")) return; // 칩 자체 클릭이면 카드 핸들러 무시
+//       const firstChip = chips[0];
+//       if (firstChip) seekTo(Number(firstChip.dataset.time));
+//     });
+//     chips.forEach(chip => {
+//       chip.addEventListener("click", (ev) => {
+//         ev.stopPropagation();
+//         seekTo(Number(chip.dataset.time));
+//       });
+//     });
+//   });
 
-  highlightByCurrentTime();
+//   highlightByCurrentTime();
 
-  pushScanToOverlay(leadingItems, nonLeadingStore);
-}
+//   pushScanToOverlay(leadingItems, nonLeadingStore);
+// }
 
-/* 재생 위치에 가장 가까운 항목/칩 하이라이트 */
-function highlightByCurrentTime() {
-  const v = document.querySelector("video");
-  const list = byId("ytc-list");
-  if (!v || !list) return;
+// /* 재생 위치에 가장 가까운 항목/칩 하이라이트 */
+// function highlightByCurrentTime() {
+//   const v = document.querySelector("video");
+//   const list = byId("ytc-list");
+//   if (!v || !list) return;
 
-  const now = v.currentTime;
+//   const now = v.currentTime;
 
-  // 후보: 메인 아이템 + 보조 칩
-  const mainItems = Array.from(list.querySelectorAll("#ytc-timeline-list .ytc-item"));
-  const auxChips = Array.from(list.querySelectorAll("#ytc-aux-list .ytc-chip"));
+//   // 후보: 메인 아이템 + 보조 칩
+//   const mainItems = Array.from(list.querySelectorAll("#ytc-timeline-list .ytc-item"));
+//   const auxChips = Array.from(list.querySelectorAll("#ytc-aux-list .ytc-chip"));
 
-  let bestEl = null, bestDelta = Infinity, bestType = null;
+//   let bestEl = null, bestDelta = Infinity, bestType = null;
 
-  for (const el of mainItems) {
-    const t = Number(el.dataset.time);
-    const d = Math.abs(t - now);
-    if (d < bestDelta && d <= 2.0) { bestEl = el; bestDelta = d; bestType = "main"; }
-  }
-  for (const chip of auxChips) {
-    const t = Number(chip.dataset.time);
-    const d = Math.abs(t - now);
-    if (d < bestDelta && d <= 2.0) { bestEl = chip; bestDelta = d; bestType = "chip"; }
-  }
+//   for (const el of mainItems) {
+//     const t = Number(el.dataset.time);
+//     const d = Math.abs(t - now);
+//     if (d < bestDelta && d <= 2.0) { bestEl = el; bestDelta = d; bestType = "main"; }
+//   }
+//   for (const chip of auxChips) {
+//     const t = Number(chip.dataset.time);
+//     const d = Math.abs(t - now);
+//     if (d < bestDelta && d <= 2.0) { bestEl = chip; bestDelta = d; bestType = "chip"; }
+//   }
 
-  // 리셋
-  mainItems.forEach(el => el.classList.remove("active"));
-  auxChips.forEach(chip => chip.classList.remove("active"));
-  Array.from(list.querySelectorAll("#ytc-aux-list .ytc-item")).forEach(card => card.classList.remove("active"));
+//   // 리셋
+//   mainItems.forEach(el => el.classList.remove("active"));
+//   auxChips.forEach(chip => chip.classList.remove("active"));
+//   Array.from(list.querySelectorAll("#ytc-aux-list .ytc-item")).forEach(card => card.classList.remove("active"));
 
-  // 적용
-  if (bestEl && bestType === "main") {
-    bestEl.classList.add("active");
-  } else if (bestEl && bestType === "chip") {
-    bestEl.classList.add("active");
-    bestEl.closest(".ytc-item")?.classList.add("active");
-  }
-}
+//   // 적용
+//   if (bestEl && bestType === "main") {
+//     bestEl.classList.add("active");
+//   } else if (bestEl && bestType === "chip") {
+//     bestEl.classList.add("active");
+//     bestEl.closest(".ytc-item")?.classList.add("active");
+//   }
+// }
 
-/* 주기적 동기 */
-let syncTimer = null;
-function startSyncTimer() {
-  if (syncTimer) return;
-  syncTimer = setInterval(highlightByCurrentTime, 500);
-}
+// /* 주기적 동기 */
+// let syncTimer = null;
+// function startSyncTimer() {
+//   if (syncTimer) return;
+//   syncTimer = setInterval(highlightByCurrentTime, 500);
+// }
 
-/* -------------------------------
-   관찰자 / 네비게이션 대응
--------------------------------- */
-function startObservers() {
-  scanOnce();
-  // ensureFab();
-  // ensurePanel();
-  renderList();
-  startSyncTimer();
+// /* -------------------------------
+//    관찰자 / 네비게이션 대응
+// -------------------------------- */
+// function startObservers() {
+//   scanOnce();
+//   // ensureFab();
+//   // ensurePanel();
+//   renderList();
+//   startSyncTimer();
 
-  const obs = new MutationObserver((muts) => {
-    let added = 0;
-    for (const m of muts) {
-      for (const node of m.addedNodes) {
-        if (!(node instanceof HTMLElement)) continue;
-        if (node.matches?.("ytd-comment-view-model, ytd-comment-renderer")) {
-          added += handleCommentNode(node);
-          node.querySelectorAll?.("ytd-comment-view-model, ytd-comment-renderer")
-            .forEach(sub => added += handleCommentNode(sub));
-        } else {
-          node.querySelectorAll?.("ytd-comment-view-model, ytd-comment-renderer")
-            .forEach(sub => added += handleCommentNode(sub));
-        }
-      }
-    }
-    if (added > 0) renderList();
-  });
-  obs.observe(document.documentElement, { childList: true, subtree: true });
+//   const obs = new MutationObserver((muts) => {
+//     let added = 0;
+//     for (const m of muts) {
+//       for (const node of m.addedNodes) {
+//         if (!(node instanceof HTMLElement)) continue;
+//         if (node.matches?.("ytd-comment-view-model, ytd-comment-renderer")) {
+//           added += handleCommentNode(node);
+//           node.querySelectorAll?.("ytd-comment-view-model, ytd-comment-renderer")
+//             .forEach(sub => added += handleCommentNode(sub));
+//         } else {
+//           node.querySelectorAll?.("ytd-comment-view-model, ytd-comment-renderer")
+//             .forEach(sub => added += handleCommentNode(sub));
+//         }
+//       }
+//     }
+//     if (added > 0) renderList();
+//   });
+//   obs.observe(document.documentElement, { childList: true, subtree: true });
 
-  // SPA 네비
-  let last = location.href;
-  const navObs = new MutationObserver(() => {
-    if (location.href !== last) {
-      last = location.href;
-      resetState();
-      log("페이지 전환 감지 → 초기화 및 재시작");
-      initWhenReady();
-    }
-  });
-  navObs.observe(document, { childList: true, subtree: true });
+//   // SPA 네비
+//   let last = location.href;
+//   const navObs = new MutationObserver(() => {
+//     if (location.href !== last) {
+//       last = location.href;
+//       resetState();
+//       log("페이지 전환 감지 → 초기화 및 재시작");
+//       initWhenReady();
+//     }
+//   });
+//   navObs.observe(document, { childList: true, subtree: true });
 
-  window.__ytTc_scan = () => { rescanAndRender(); };
-}
+//   window.__ytTc_scan = () => { rescanAndRender(); };
+// }
 
-function resetState() {
-  leadingItems.length = 0;
-  nonLeadingStore.clear();
-  seen.clear();
-  const list = byId("ytc-list"); if (list) list.innerHTML = "";
-}
+// function resetState() {
+//   leadingItems.length = 0;
+//   nonLeadingStore.clear();
+//   seen.clear();
+//   const list = byId("ytc-list"); if (list) list.innerHTML = "";
+// }
 
-function rescanAndRender() {
-  const added = scanOnce();
-  if (added > 0) renderList();
-}
+// function rescanAndRender() {
+//   const added = scanOnce();
+//   if (added > 0) renderList();
+// }
 
-/* -------------------------------
-   댓글 컨테이너 대기 (실험군/지연 로드 대응)
--------------------------------- */
-function isWatchPage() { return location.pathname === "/watch"; }
-function findCommentsRoot() {
-  return (
-    document.querySelector("ytd-comments") ||
-    document.querySelector("#comments") ||
-    document.querySelector("ytd-item-section-renderer#sections") ||
-    document.querySelector("ytd-engagement-panel-section-list-renderer") ||
-    null
-  );
-}
-function forceLoadComments() {
-  const anchor =
-    document.querySelector("#comments") ||
-    document.querySelector("ytd-comments") ||
-    document.querySelector("ytd-item-section-renderer#sections") ||
-    document.querySelector("ytd-app");
-  anchor?.scrollIntoView?.({ behavior: "auto", block: "center" });
-  window.scrollBy(0, 120);
-}
-function waitForCommentsHost(cb, tries = 0) {
-  const root = findCommentsRoot();
-  if (root) return cb();
+// /* -------------------------------
+//    댓글 컨테이너 대기 (실험군/지연 로드 대응)
+// -------------------------------- */
+// function isWatchPage() { return location.pathname === "/watch"; }
+// function findCommentsRoot() {
+//   return (
+//     document.querySelector("ytd-comments") ||
+//     document.querySelector("#comments") ||
+//     document.querySelector("ytd-item-section-renderer#sections") ||
+//     document.querySelector("ytd-engagement-panel-section-list-renderer") ||
+//     null
+//   );
+// }
+// function forceLoadComments() {
+//   const anchor =
+//     document.querySelector("#comments") ||
+//     document.querySelector("ytd-comments") ||
+//     document.querySelector("ytd-item-section-renderer#sections") ||
+//     document.querySelector("ytd-app");
+//   anchor?.scrollIntoView?.({ behavior: "auto", block: "center" });
+//   window.scrollBy(0, 120);
+// }
+// function waitForCommentsHost(cb, tries = 0) {
+//   const root = findCommentsRoot();
+//   if (root) return cb();
 
-  if (tries < 15) {
-    forceLoadComments();
-    return setTimeout(() => waitForCommentsHost(cb, tries + 1), 600);
-  }
+//   if (tries < 15) {
+//     forceLoadComments();
+//     return setTimeout(() => waitForCommentsHost(cb, tries + 1), 600);
+//   }
 
-  let found = false;
-  const obs = new MutationObserver(() => {
-    const r = findCommentsRoot();
-    if (r) { found = true; obs.disconnect(); cb(); }
-  });
-  obs.observe(document.documentElement, { childList: true, subtree: true });
+//   let found = false;
+//   const obs = new MutationObserver(() => {
+//     const r = findCommentsRoot();
+//     if (r) { found = true; obs.disconnect(); cb(); }
+//   });
+//   obs.observe(document.documentElement, { childList: true, subtree: true });
 
-  setTimeout(() => {
-    if (found) return;
-    obs.disconnect();
-    warn("댓글 컨테이너가 생성되지 않습니다. (Shorts/비활성/실험군 가능)");
-  }, 20000);
-}
-window.__ytTc_forceLoad = () => forceLoadComments();
+//   setTimeout(() => {
+//     if (found) return;
+//     obs.disconnect();
+//     warn("댓글 컨테이너가 생성되지 않습니다. (Shorts/비활성/실험군 가능)");
+//   }, 20000);
+// }
+// window.__ytTc_forceLoad = () => forceLoadComments();
 
-/* -------------------------------
-   초기 진입
--------------------------------- */
-function initWhenReady() {
-  if (!isWatchPage()) {
-    warn("watch 페이지가 아닙니다(Shorts 등). 이 확장은 /watch 에서만 동작합니다.");
-    return;
-  }
-  log("초기화: 댓글 컨테이너 대기 후 스캔/패널 시작");
-  // ensureFab();
-  // ensurePanel();
-  waitForCommentsHost(() => startObservers());
-}
+// /* -------------------------------
+//    초기 진입
+// -------------------------------- */
+// function initWhenReady() {
+//   if (!isWatchPage()) {
+//     warn("watch 페이지가 아닙니다(Shorts 등). 이 확장은 /watch 에서만 동작합니다.");
+//     return;
+//   }
+//   log("초기화: 댓글 컨테이너 대기 후 스캔/패널 시작");
+//   // ensureFab();
+//   // ensurePanel();
+//   waitForCommentsHost(() => startObservers());
+// }
 
-initWhenReady();
+// initWhenReady();
