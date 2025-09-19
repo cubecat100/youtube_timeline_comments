@@ -51,10 +51,6 @@ window.__timelinePlayer?.debug?.forceRender('PING');
 
 ## 라이선스
 - 기본 제안: **MIT**
-- 특허 고려 시: **Apache-2.0** (NOTICE 포함)
-- 파일 단위 카피레프트 원하면: **MPL-2.0**
-
-각 선택지는 리포 루트 `LICENSE`와 소스 상단 `SPDX-License-Identifier`로 명시하세요.
 
 ---
 
