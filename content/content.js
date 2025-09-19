@@ -643,15 +643,15 @@ function getNodeUid(n) {
   return id;
 }
 
-// function textHash(s) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; } return h.toString(16); }
+function textHash(s) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; } return h.toString(16); }
 
-// // 메인(선행 TS) 평탄 리스트
-// const leadingItems = [];   // { seconds, display, text, uid }
-// // 보조(비선행) 댓글 단위 묶음: uid -> { text, chips: Map(sec -> {display, text}) }
-// const nonLeadingStore = new Map();
+// 메인(선행 TS) 평탄 리스트
+const leadingItems = [];   // { seconds, display, text, uid }
+// 보조(비선행) 댓글 단위 묶음: uid -> { text, chips: Map(sec -> {display, text}) }
+const nonLeadingStore = new Map();
 
-// // 중복 방지
-// const seen = new Set();    // key: `${uid}::L/N::${seconds}::${hash(text)}`
+// 중복 방지
+const seen = new Set();    // key: `${uid}::L/N::${seconds}::${hash(text)}`
 
 // /* -------------------------------
 //    스캐닝
