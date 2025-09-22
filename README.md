@@ -2,16 +2,12 @@
 
 YouTube 영상 위에 타임스탬프 기반 댓글을 오버레이로 띄우는 Chrome 확장 프로그램.
 
-> 일반 모드 / 영화관 모드 / 전체화면 모드에서 안정적으로 우측 정렬 오버레이를 제공합니다.
-> 넘침 제어, 폰트/폭/투명도 등 주요 옵션은 런타임에서 즉시 변경 됩니다.
-
 ---
 
 ## 주요 기능
 - 댓글 크롤링 및 타임스탬프가 포함된 댓글 필터링
 - 댓글 정규화 및 시간 싱크 플레이
 - 영상 우측 정렬 오버레이(일반/영화관/전체화면 대응)
-- 넘침 처리 모드: **mask**(가리기) / **prune**(오래된 버블 제거)
 - 런타임 옵션: 최대 폭 비율, 폰트 크기, 배경 투명도, 상하 여백 비율, 표시 개수 제한 등
 - 레이아웃 변화 자동 추적: `ResizeObserver` + `MutationObserver` + `requestAnimationFrame` 보정
 - (화면 출력에 출력되는 폰트/폭/투명도 등 주요 옵션 조절 기능 추가 예정)
@@ -28,24 +24,7 @@ YouTube 영상 위에 타임스탬프 기반 댓글을 오버레이로 띄우는
 ---
 
 ### 자주 묻는 문제
-...
 
----
-
-## 디버깅
-```js
-// 로그 레벨
-TLDBG.setVerbose(true);
-
-// 플레이어 상태 확인
-window.__timelinePlayer?.status();
-
-// 강제 재배치
-window.dispatchEvent(new Event('resize'));
-
-// 강제 렌더(개발 전용 훅이 있는 경우)
-window.__timelinePlayer?.debug?.forceRender('PING');
-```
 
 ---
 
@@ -57,11 +36,6 @@ window.__timelinePlayer?.debug?.forceRender('PING');
 ## 개인정보 및 브랜드 고지
 - 이 확장 프로그램은 개인 데이터를 수집하지 않습니다.
 - “YouTube”는 Google LLC의 상표입니다. 본 프로젝트는 비공식이며 연관이 없습니다.
-
----
-
-## 변경 이력
-자세한 내용은 [`CHANGELOG.md`](./CHANGELOG.md)를 참고하세요.
 
 
 
