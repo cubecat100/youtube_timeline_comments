@@ -257,21 +257,29 @@ function showComment(overlay, text, timeSec) {
   item.textContent = text;
 
   const ts = Number(timeSec);
+  let hideTimer;
+  let removeTimer;
   item.addEventListener('click', () => {
-    if (Number.isFinite(ts)) {
-      window.seekTo(ts, { autoplay: true });
-    } else {
-      console.warn('Invalid timeSec:', timeSec);
+    const video = window.__timelinePlayer?.video;
+    if (video) {
+      if (Number.isFinite(ts)) video.currentTime = ts;
+      video.pause();
     }
+    item.dataset.tlPinned = 'true';
+    clearTimeout(hideTimer);
+    clearTimeout(removeTimer);
+    item.style.opacity = '1';
+    item.style.transform = 'translateY(0)';
+    overlay.appendChild(item);
   });
 
-  overlay.appendChild(item);
+  overlay.insertBefore(item, overlay.querySelector('[data-tl-pinned]'));
   overlay.__tl_enforceOverflowPolicy?.();
 
-  setTimeout(() => {
+  hideTimer = setTimeout(() => {
     item.style.opacity = '0';
     item.style.transform = 'translateY(-10px)';
-    setTimeout(() => item.remove(), 500);
+    removeTimer = setTimeout(() => item.remove(), 500);
   }, 5000);
 }
 
@@ -383,12 +391,16 @@ function bootOverlayWith(raw) {
     const maxItems = window.__TL_OVERLAY_OPTS?.maxItems ?? 6;
     // 1) 개수 제한 우선
     while (overlay.childElementCount > maxItems) {
-      overlay.firstElementChild?.remove();
+      const oldest = Array.from(overlay.children).find(item => !item.dataset.tlPinned);
+      if (!oldest) break;
+      oldest.remove();
     }
     // 2) 높이 초과 시 가장 오래된 버블부터 제거
     let guard = 50; // 안전 상한
     while (overlay.scrollHeight > overlay.clientHeight && overlay.childElementCount > 0 && guard-- > 0) {
-      overlay.firstElementChild?.remove();
+      const oldest = Array.from(overlay.children).find(item => !item.dataset.tlPinned);
+      if (!oldest) break;
+      oldest.remove();
     }
   };
 
@@ -507,6 +519,11 @@ class TimelineCommentPlayer {
   }
 
   _onPlay() {
+    const pinned = this.overlay.querySelectorAll('[data-tl-pinned]');
+    if (pinned.length) {
+      pinned.forEach(item => item.remove());
+      this.idx = this._lowerBound(this.comments, this.video.currentTime + this.tolerance + 0.000001, c => c.timeSec);
+    }
     this.lastT = this.video.currentTime;
     const step = () => { this._rafId = requestAnimationFrame(step); this._tick(); };
     this._rafId = requestAnimationFrame(step);
